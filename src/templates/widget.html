@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Weather Ticker</title>
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { background:transparent; overflow:hidden;
+         display:flex; align-items:center; height:100vh; }
+  .mq-wrap { overflow:hidden; width:100%; }
+  .mq-track { display:inline-flex; white-space:nowrap;
+              animation: scroll 40s linear infinite; }
+  .mq-track:hover { animation-play-state:paused; }
+  .mq-item { color:#3fb950; font-size:14px; font-weight:500;
+             font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
+             padding-right:120px; letter-spacing:.02em; }
+  .no-config { color:#8b949e; font-size:12px;
+               font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
+               padding:0 20px; }
+  @keyframes scroll {
+    from { transform:translateX(0); }
+    to   { transform:translateX(-50%); }
+  }
+</style>
+</head>
+<body>
+<div class="mq-wrap" id="ticker-wrap">
+  <p class="no-config">⚙ Weather Ticker — open Settings to configure a location.</p>
+</div>
+<script>
+  const REFRESH_MS = {{ config.get('refresh_interval', 900) * 1000 }};
+
+  async function updateTicker() {
+    try {
+      const r = await fetch('/widget/api/weather');
+      const d = await r.json();
+      if (d.error) return;
+      const text = `📍 ${d.location} 📅 ${d.date} 🕐 ${d.time} ${d.icon} ${d.temperature}  ${d.description} 💨 ${d.wind} 💧 ${d.humidity} UV ${d.uv}`;
+      const wrap = document.getElementById('ticker-wrap');
+      wrap.innerHTML = `<div class="mq-track"><span class="mq-item">${text}</span><span class="mq-item">${text}</span></div>`;
+    } catch (e) { console.error(e); }
+  }
+
+  {% if config.get('location') %}
+  updateTicker();
+  setInterval(updateTicker, REFRESH_MS);
+  {% endif %}
+</script>
+</body>
+</html>

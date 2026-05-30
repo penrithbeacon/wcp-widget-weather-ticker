@@ -1,0 +1,13 @@
+services:
+  weather-ticker:
+    build: .
+    image: wcp-widget-weather-ticker
+    container_name: wcp-widget-weather-ticker
+    ports:
+      - "3739:3739"
+    restart: unless-stopped
+    volumes:
+      - weather_config:/app/data
+
+volumes:
+  weather_config:
