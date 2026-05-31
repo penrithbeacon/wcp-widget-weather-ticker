@@ -95,6 +95,7 @@ curl -X POST http://localhost:3739/widget/configure \
 | Tag | Description |
 |-----|-------------|
 | `latest` | Latest stable release |
+| `1.1.0-wcp1.3.0` | Widget v1.1.0, WCP 1.3.0 — adds components array, ticker role |
 | `1.0.0-wcp1.1.0` | Widget v1.0.0, WCP protocol v1.1.0 |
 
 ## Source
