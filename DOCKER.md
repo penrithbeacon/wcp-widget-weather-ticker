@@ -3,7 +3,7 @@
 A [Widget Context Protocol (WCP)](https://github.com/penrithbeacon/wcp-widget-weather-ticker)
 compliant widget that displays live weather, date, and time for any location worldwide.
 Powered by [Open-Meteo](https://open-meteo.com/) — free, no API key required.
-Designed to run alongside the **Penrith Beacon MCP Dashboard** or any WCP-compatible host.
+Designed to run alongside the **Penrith Beacon WCP Dashboard** or any WCP-compatible host.
 
 ## Quick Start
 
