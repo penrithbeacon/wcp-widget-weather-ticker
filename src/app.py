@@ -8,7 +8,7 @@ Port: 3739
 import json
 import os
 import requests
-from datetime import datetime
+from datetime import datetime, timezone, timedelta
 from flask import Flask, jsonify, render_template, request, Response
 
 app = Flask(__name__)
@@ -242,7 +242,11 @@ def get_weather():
         icon, desc = WMO.get(code, ("🌡️", "Unknown"))
         unit_sym = "°C" if units == "celsius" else "°F"
 
-        now = datetime.now()
+        # Use the location's UTC offset from Open-Meteo so time is local, not UTC
+        utc_offset = data.get("utc_offset_seconds", 0)
+        local_tz   = timezone(timedelta(seconds=utc_offset))
+        now        = datetime.now(local_tz)
+
         return jsonify({
             "location":    f"{loc.get('name', '')}, {loc.get('admin1', '')}, {loc.get('country_code', '')}",
             "date":        now.strftime("%a %-d %b %Y"),
