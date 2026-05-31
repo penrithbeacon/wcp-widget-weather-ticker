@@ -13,7 +13,7 @@ from flask import Flask, jsonify, render_template, request, Response
 
 app = Flask(__name__)
 
-CONFIG_FILE = os.path.join(os.path.dirname(__file__), '..', 'data', 'config.json')
+CONFIG_FILE = os.path.join(os.path.dirname(__file__), 'data', 'config.json')
 os.makedirs(os.path.dirname(CONFIG_FILE), exist_ok=True)
 
 # ── WMO weather code → (emoji, description) ──────────────────────────────────
