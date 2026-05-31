@@ -101,3 +101,4 @@ curl -X POST http://localhost:3739/widget/configure \
 
 - Docker Hub: [penrithbeacon/wcp-widget-weather-ticker](https://hub.docker.com/r/penrithbeacon/wcp-widget-weather-ticker)
 - GitHub: [penrithbeacon/wcp-widget-weather-ticker](https://github.com/penrithbeacon/wcp-widget-weather-ticker)
+- WCP Specification: [widgetcontextprotocol.com](https://widgetcontextprotocol.com)
