@@ -71,13 +71,6 @@ WCP_MANIFEST = {
     ),
     "icon": "/widget/icon.svg",
     "health": "/widget/health",
-    "widget": {
-        "path": "/widget/",
-        "renderMode": "iframe",
-        "refreshInterval": 900,
-        "authType": "none",
-        "mastheadTicker": True,
-    },
     "configuration": {
         "submitEndpoint": "/widget/configure",
         "fields": [
@@ -167,7 +160,7 @@ def widget_manifest():
     return jsonify({
         "wcp": m["wcp"], "name": m["name"], "version": m["version"],
         "description": m["description"], "icon": m["icon"],
-        "health": m["health"], "widget": m["widget"],
+        "health": m["health"], "components": m["components"],
     })
 
 @app.route("/widget/health")
