@@ -62,9 +62,9 @@ def write_config(data):
 # ── WCP Manifest ─────────────────────────────────────────────────────────────
 
 WCP_MANIFEST = {
-    "wcp": "1.1.0",
+    "wcp": "1.3.0",
     "name": "Weather Ticker",
-    "version": "1.0.0",
+    "version": "1.1.0",
     "description": (
         "Live weather, date and time ticker for any location worldwide. "
         "Powered by Open-Meteo — free, no API key required."
@@ -133,6 +133,18 @@ WCP_MANIFEST = {
             "page":    "full",
             "tab":     {"title": "Weather", "icon": "/widget/icon.svg"},
             "persist": False,
+        },
+    ],
+    "components": [
+        {
+            "id": "weather-widget", "name": "Weather Ticker", "role": "widget",
+            "path": "/widget/", "icon": "/widget/icon.svg",
+            "renderMode": "iframe", "defaultSize": {"w": 6, "h": 2},
+        },
+        {
+            "id": "weather-ticker", "name": "Weather Masthead Ticker", "role": "ticker",
+            "path": "/widget/", "icon": "/widget/icon.svg",
+            "mastheadCapable": True, "size": {"min": 40, "max": 60},
         },
     ],
 }
