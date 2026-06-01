@@ -1,8 +1,9 @@
 """
 WCP Widget: Weather Ticker
-Widget Context Protocol 1.1.0 — Weather + Date/Time masthead ticker
+Widget Context Protocol 1.3.1 — Weather + Date/Time masthead ticker
 Powered by Open-Meteo (free, no API key required)
 Port: 3739
+Specification: https://widgetcontextprotocol.com
 """
 
 import json
@@ -15,6 +16,25 @@ app = Flask(__name__)
 
 CONFIG_FILE = os.path.join(os.path.dirname(__file__), 'data', 'config.json')
 os.makedirs(os.path.dirname(CONFIG_FILE), exist_ok=True)
+
+# In-memory cache: display string → full location object (lat/lon etc.)
+_search_cache = {}
+
+# ── CORS ──────────────────────────────────────────────────────────────────────
+
+@app.after_request
+def add_cors_headers(response):
+    response.headers['Access-Control-Allow-Origin']  = '*'
+    response.headers['Access-Control-Allow-Methods'] = 'GET, POST, DELETE, OPTIONS'
+    response.headers['Access-Control-Allow-Headers'] = (
+        'Content-Type, Wcp-Instance-Id, Wcp-Dashboard-Id, Wcp-Version'
+    )
+    return response
+
+@app.route('/widget/<path:p>', methods=['OPTIONS'])
+@app.route('/widget/', methods=['OPTIONS'])
+def cors_preflight(p=''):
+    return Response('', status=204)
 
 # ── WMO weather code → (emoji, description) ──────────────────────────────────
 
@@ -45,26 +65,41 @@ WMO = {
     99: ("⛈️",  "Thunderstorm + hail"),
 }
 
-# ── Config helpers ────────────────────────────────────────────────────────────
+# ── Config helpers (per-instance storage keyed by Wcp-Instance-Id) ───────────
 
-def read_config():
+def _load_store():
+    """Load the full config store. Returns {'instances': {'<id>': {...}, ...}}"""
     try:
         with open(CONFIG_FILE) as f:
-            return json.load(f)
+            data = json.load(f)
+        # Backward compat: migrate old flat format
+        if 'instances' not in data:
+            return {'instances': {'global': data}}
+        return data
     except Exception:
-        return {}
+        return {'instances': {}}
 
-def write_config(data):
+def read_config(instance_id=None):
+    store = _load_store()
+    instances = store.get('instances', {})
+    if instance_id and instance_id in instances:
+        return instances[instance_id]
+    return instances.get('global', {})
+
+def write_config(data, instance_id=None):
+    store = _load_store()
+    key = instance_id or 'global'
+    store['instances'][key] = data
     os.makedirs(os.path.dirname(CONFIG_FILE), exist_ok=True)
     with open(CONFIG_FILE, 'w') as f:
-        json.dump(data, f, indent=2)
+        json.dump(store, f, indent=2)
 
 # ── WCP Manifest ─────────────────────────────────────────────────────────────
 
 WCP_MANIFEST = {
-    "wcp": "1.3.0",
+    "wcp": "1.3.1",
     "name": "Weather Ticker",
-    "version": "1.1.0",
+    "version": "1.2.0",
     "description": (
         "Live weather, date and time ticker for any location worldwide. "
         "Powered by Open-Meteo — free, no API key required."
@@ -75,13 +110,11 @@ WCP_MANIFEST = {
         "submitEndpoint": "/widget/configure",
         "fields": [
             {
-                "key": "location",
-                "type": "location-search",
+                "id": "location",
+                "type": "autocomplete",
                 "label": "Location",
                 "placeholder": "Type a city name…",
-                "searchEndpoint": "/widget/api/search?q={query}",
-                "resultDisplay": "{name}, {admin1}, {country}",
-                "resultValue": ["latitude", "longitude", "name", "country_code", "admin1"],
+                "searchUrl": "",
             },
             {
                 "key": "units",
@@ -147,8 +180,10 @@ WCP_MANIFEST = {
 @app.route("/widget/")
 @app.route("/widget/index.html")
 def widget_ticker():
-    cfg = read_config()
-    return render_template("widget.html", manifest=WCP_MANIFEST, config=cfg)
+    instance_id = request.headers.get('Wcp-Instance-Id')
+    cfg = read_config(instance_id)
+    return render_template("widget.html", manifest=WCP_MANIFEST, config=cfg,
+                           wcp_instance_id=instance_id or '')
 
 @app.route("/widget/wcp")
 def widget_wcp():
@@ -169,8 +204,10 @@ def widget_health():
 
 @app.route("/widget/full")
 def widget_full():
-    cfg = read_config()
-    return render_template("full.html", manifest=WCP_MANIFEST, config=cfg)
+    instance_id = request.headers.get('Wcp-Instance-Id')
+    cfg = read_config(instance_id)
+    return render_template("full.html", manifest=WCP_MANIFEST, config=cfg,
+                           wcp_instance_id=instance_id or '')
 
 @app.route("/widget/icon.svg")
 def widget_icon():
@@ -184,8 +221,12 @@ def widget_icon():
 @app.route("/widget/configure", methods=["POST"])
 def widget_configure():
     try:
+        instance_id = request.headers.get('Wcp-Instance-Id')
         data = request.get_json(force=True) or {}
-        write_config(data)
+        # If location is a string (display name), resolve from cache
+        if isinstance(data.get('location'), str):
+            data['location'] = _search_cache.get(data['location'], data['location'])
+        write_config(data, instance_id)
         return jsonify({"success": True})
     except Exception as e:
         return jsonify({"success": False, "error": str(e)}), 500
@@ -196,7 +237,7 @@ def widget_configure():
 def location_search():
     q = request.args.get("q", "").strip()
     if not q:
-        return jsonify({"results": []})
+        return jsonify([])
     try:
         r = requests.get(
             "https://geocoding-api.open-meteo.com/v1/search",
@@ -204,36 +245,56 @@ def location_search():
             timeout=8,
         )
         data = r.json()
-        results = []
+        suggestions = []
         for item in data.get("results", []):
-            results.append({
+            parts = [item.get("name", "")]
+            if item.get("admin1"): parts.append(item["admin1"])
+            if item.get("country"): parts.append(item["country"])
+            display = ", ".join(parts)
+            # Cache the full object keyed by display string for use at configure time
+            _search_cache[display] = {
                 "name":         item.get("name", ""),
                 "admin1":       item.get("admin1", ""),
                 "country":      item.get("country", ""),
                 "country_code": item.get("country_code", ""),
                 "latitude":     item.get("latitude"),
                 "longitude":    item.get("longitude"),
-            })
-        return jsonify({"results": results})
+            }
+            suggestions.append(display)
+        return jsonify(suggestions)
     except Exception as e:
-        return jsonify({"results": [], "error": str(e)})
+        return jsonify([])
 
 # ── Weather data ──────────────────────────────────────────────────────────────
 
 @app.route("/widget/api/weather")
 def get_weather():
-    cfg = read_config()
-    loc = cfg.get("location")
-    if not loc or not loc.get("latitude"):
-        return jsonify({"error": "no_location", "message": "Location not configured"})
-
-    units = cfg.get("units", "celsius")
+    # Widget JS passes lat/lon/units inline after configure; fall back to stored config
+    lat  = request.args.get("lat")
+    lon  = request.args.get("lon")
+    units = request.args.get("units")
+    if not (lat and lon):
+        instance_id = request.headers.get('Wcp-Instance-Id')
+        cfg = read_config(instance_id)
+        loc = cfg.get("location")
+        if not loc or not loc.get("latitude"):
+            return jsonify({"error": "no_location", "message": "Location not configured"})
+        lat   = loc["latitude"]
+        lon   = loc["longitude"]
+        units = units or cfg.get("units", "celsius")
+        loc_name = f"{loc.get('name', '')}, {loc.get('admin1', '')}, {loc.get('country_code', '')}"
+    else:
+        lat, lon = float(lat), float(lon)
+        units = units or "celsius"
+        loc_name = request.args.get("loc", "")
+    if not units:
+        units = "celsius"
     try:
         r = requests.get(
             "https://api.open-meteo.com/v1/forecast",
             params={
-                "latitude":         loc["latitude"],
-                "longitude":        loc["longitude"],
+                "latitude":         lat,
+                "longitude":        lon,
                 "current":          "temperature_2m,relative_humidity_2m,weathercode,windspeed_10m,uv_index",
                 "wind_speed_unit":  "kmh",
                 "temperature_unit": units,
@@ -253,7 +314,7 @@ def get_weather():
         now        = datetime.now(local_tz)
 
         return jsonify({
-            "location":    f"{loc.get('name', '')}, {loc.get('admin1', '')}, {loc.get('country_code', '')}",
+            "location":    loc_name,
             "date":        now.strftime("%a %-d %b %Y"),
             "time":        now.strftime("%H:%M"),
             "icon":        icon,
@@ -262,7 +323,6 @@ def get_weather():
             "humidity":    f"{round(cur.get('relative_humidity_2m', 0))}%",
             "wind":        f"{round(cur.get('windspeed_10m', 0))} km/h",
             "uv":          str(round(cur.get("uv_index", 0))),
-            "refresh_interval": cfg.get("refresh_interval", 900),
         })
     except Exception as e:
         return jsonify({"error": str(e)})

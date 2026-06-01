@@ -28,14 +28,20 @@
   <p class="no-config">⚙ Weather Ticker — open Settings to configure a location.</p>
 </div>
 <script>
+  const WCP_INSTANCE_ID = "{{ wcp_instance_id }}";
+  const WCP_CONFIG = {{ config | tojson }};
   const REFRESH_MS = {{ config.get('refresh_interval', 900) * 1000 }};
 
   async function updateTicker() {
     try {
-      const r = await fetch('/widget/api/weather');
+      const loc = WCP_CONFIG.location;
+      const params = loc && loc.latitude
+        ? `?lat=${loc.latitude}&lon=${loc.longitude}&units=${WCP_CONFIG.units || 'celsius'}&loc=${encodeURIComponent(loc.name + ', ' + (loc.admin1 || '') + ', ' + (loc.country_code || ''))}`
+        : '';
+      const r = await fetch('/widget/api/weather' + params);
       const d = await r.json();
       if (d.error) return;
-      const text = `📍 ${d.location} 📅 ${d.date} 🕐 ${d.time} ${d.icon} ${d.temperature}  ${d.description} 💨 ${d.wind} 💧 ${d.humidity} UV ${d.uv}`;
+      const text = `📍 ${d.location} 📅 ${d.date} 🕐 ${d.time} ${d.icon} ${d.temperature}  ${d.description} 💨 ${d.wind} 💧 ${d.humidity} UV ${d.uv}`;
       const wrap = document.getElementById('ticker-wrap');
       wrap.innerHTML = `<div class="mq-track"><span class="mq-item">${text}</span><span class="mq-item">${text}</span></div>`;
     } catch (e) { console.error(e); }
