@@ -1,9 +1,11 @@
 # WCP Widget: Weather Ticker
 
-A [Widget Context Protocol (WCP)](https://github.com/penrithbeacon/wcp-widget-weather-ticker)
-compliant widget that displays live weather, date, and time for any location worldwide.
-Powered by [Open-Meteo](https://open-meteo.com/) — free, no API key required.
-Designed to run alongside the **Penrith Beacon WCP Dashboard** or any WCP-compatible host.
+A [Widget Context Protocol (WCP)](https://widgetcontextprotocol.com) compliant widget that displays
+live weather, date, and time for any location worldwide. Powered by
+[Open-Meteo](https://open-meteo.com/) — free, no API key required. Designed to run alongside
+any WCP-compatible host dashboard.
+
+**Specification:** [widgetcontextprotocol.com](https://widgetcontextprotocol.com)
 
 ## Quick Start
 
@@ -16,7 +18,7 @@ docker run -d \
   penrithbeacon/wcp-widget-weather-ticker:latest
 ```
 
-Then add it to your WCP dashboard at `http://localhost:3739` and configure your location.
+Then add it to your WCP dashboard at the container's network address and configure your location.
 
 ## Docker Compose
 
@@ -37,49 +39,50 @@ volumes:
 
 ## Configuration
 
-Configure the widget through your WCP dashboard's widget settings panel, or directly:
-
-```bash
-curl -X POST http://localhost:3739/widget/configure \
-  -H "Content-Type: application/json" \
-  -d '{
-    "location": "London, UK",
-    "latitude": 51.5074,
-    "longitude": -0.1278,
-    "units": "celsius",
-    "refresh": 15
-  }'
-```
+Configure the widget through your WCP dashboard's widget settings panel. The dashboard reads
+the `config` array from the manifest (`GET /widget/wcp`), builds a settings form, and POSTs
+the completed values to `/widget/configure` with the `Wcp-Instance-Id` header.
 
 | Field | Type | Description |
 |-------|------|-------------|
-| `location` | string | Display name for the location |
-| `latitude` | float | Latitude (set automatically via location search) |
-| `longitude` | float | Longitude (set automatically via location search) |
-| `units` | string | `celsius` or `fahrenheit` |
-| `refresh` | integer | Refresh interval in minutes (default: 15) |
+| `location` | autocomplete | Live search — returns matching cities from Open-Meteo geocoding |
+| `units` | select | `celsius` or `fahrenheit` |
+| `refresh_interval` | number | Refresh interval in seconds (300–7200, default 900) |
+
+## WCP Request Headers
+
+This widget supports the WCP 1.3.1 request headers:
+
+| Header | Required | Description |
+|--------|----------|-------------|
+| `Wcp-Instance-Id` | Required | UUID identifying this widget instance — enables multi-instance configuration |
+| `Wcp-Dashboard-Id` | Optional | UUID identifying the requesting dashboard |
+| `Wcp-Version` | Optional | Protocol version the dashboard speaks |
 
 ## WCP Endpoints
 
 | Endpoint | Description |
 |----------|-------------|
 | `GET /widget/` | Compact ticker widget (iframe) |
-| `GET /widget/wcp` | WCP 1.1.0 manifest |
+| `GET /widget/wcp` | WCP 1.3.1 manifest |
 | `GET /widget/health` | Health check |
-| `GET /widget/icon.svg` | Widget icon |
-| `POST /widget/configure` | Save widget configuration |
-| `GET /widget/api/search?q=<city>` | Location autocomplete search |
+| `GET /widget/icon.svg` | Widget icon (SVG) |
+| `GET /widget/full` | Full weather detail page |
+| `POST /widget/configure` | Save widget configuration (per instance) |
+| `GET /widget/api/search?q=<query>` | Location autocomplete — returns JSON string array |
+| `GET /widget/api/weather` | Current weather data — accepts inline `lat`, `lon`, `units` params |
 
 ## WCP Compatibility
 
 | Property | Value |
 |----------|-------|
-| WCP Version | 1.1.0 |
-| Widget Version | 1.0.0 |
+| WCP Version | 1.3.1 |
+| Widget Version | 1.2.0 |
 | Render mode | iframe |
 | Auth | none |
 | Default card size | 6×2 |
-| Config fields | location-search, select, number |
+| Config fields | autocomplete, select, number |
+| Multi-instance | Yes — configuration keyed by `Wcp-Instance-Id` |
 
 ## Technical Details
 
@@ -87,7 +90,7 @@ curl -X POST http://localhost:3739/widget/configure \
 - **Port:** `3739`
 - **Dependencies:** Flask, requests
 - **Weather data:** [Open-Meteo API](https://open-meteo.com/) — free, no API key needed
-- **Persistent storage:** Named Docker volume `weather_config` stores location/units preferences
+- **Persistent storage:** Named Docker volume `weather_config` stores per-instance configurations
 - **Timezone handling:** Uses `utc_offset_seconds` from Open-Meteo for correct local time inside Docker
 
 ## Tags
@@ -95,9 +98,8 @@ curl -X POST http://localhost:3739/widget/configure \
 | Tag | Description |
 |-----|-------------|
 | `latest` | Latest stable release |
-| `1.1.0-wcp1.3.0` | Widget v1.1.0, WCP 1.3.0 — mandatory components array |
-| `1.1.0-wcp1.3.0` | Widget v1.1.0, WCP 1.3.0 — adds components array, ticker role |
-<!-- removed: 1.0.0-wcp1.1.0 | Widget v1.0.0, WCP protocol v1.1.0 |
+| `1.2.0-wcp1.3.1` | Widget v1.2.0, WCP 1.3.1 — multi-instance headers, autocomplete config type |
+| `1.1.0-wcp1.3.0` | Widget v1.1.0, WCP 1.3.0 — components array, ticker role |
 
 ## Source
 
