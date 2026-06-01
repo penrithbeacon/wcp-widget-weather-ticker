@@ -130,12 +130,12 @@ WCP_MANIFEST = {
     ],
     "components": [
         {
-            "id": "weather-widget", "name": "Weather Ticker", "role": "widget",
+            "id": "weather-widget", "uuid": "3c138659-6100-4321-b1d7-7e556213031a", "name": "Weather Ticker", "role": "widget",
             "path": "/widget/", "icon": "/widget/icon.svg",
             "renderMode": "iframe", "defaultSize": {"w": 6, "h": 2},
         },
         {
-            "id": "weather-ticker", "name": "Weather Masthead Ticker", "role": "ticker",
+            "id": "weather-ticker", "uuid": "c8fdf59c-70b6-416a-a3b6-1dc0788e7989", "name": "Weather Masthead Ticker", "role": "ticker",
             "path": "/widget/", "icon": "/widget/icon.svg",
             "mastheadCapable": True, "size": {"min": 40, "max": 60},
         },
