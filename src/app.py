@@ -128,7 +128,7 @@ def write_config(data, instance_id=None):
 # ── WCP Manifest ─────────────────────────────────────────────────────────────
 
 WCP_MANIFEST = {
-    "wcp": "1.5.0",
+    "wcp": "2.0.0",
     "uuid": "65063c5d-5f2e-47c2-935b-fe3a3cdc4d0f",
     "name": "Weather Ticker",
     "version": "1.3.0",
@@ -138,6 +138,13 @@ WCP_MANIFEST = {
     ),
     "icon": "/widget/icon.svg",
     "health": "/widget/health",
+    "container": {
+        "image":            "penrithbeacon/wcp-widget-weather-ticker",
+        "tag":              "1.3.0-wcp2.0.0",
+        "port":             3739,
+        "volumes":          [{"name": "weather_config", "mountPath": "/app/data"}],
+        "defaultLifecycle": "always",
+    },
     "configuration": {
         "submitEndpoint": "/widget/configure",
         "fields": [
@@ -213,7 +220,7 @@ WCP_MANIFEST = {
 def container_directory():
     return jsonify({
         "type":    "directory",
-        "wcp":     "1.5.0",
+        "wcp":     "2.0.0",
         "widgets": [{
             "id":          "weather-ticker",
             "uuid":        WCP_MANIFEST["uuid"],
