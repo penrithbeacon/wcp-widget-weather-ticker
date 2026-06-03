@@ -28,7 +28,17 @@
   <p class="no-config">⚙ Weather Ticker — open Settings to configure a location.</p>
 </div>
 <script>
-  const WCP_INSTANCE_ID = "{{ wcp_instance_id }}";
+  const WCP_INSTANCE_ID    = "{{ wcp_instance_id }}";
+  const WCP_ORCHESTRATION_ID = "{{ wcp_orchestration_id|default('', true) }}";
+  const WCP_APPLICATION_ID   = "{{ wcp_application_id|default('', true) }}";
+  function wcpFetch(url, opts) {
+    opts = opts || {};
+    const extra = {};
+    if (WCP_ORCHESTRATION_ID) extra['Wcp-Orchestration-Id'] = WCP_ORCHESTRATION_ID;
+    if (WCP_APPLICATION_ID)   extra['Wcp-Application-Id']   = WCP_APPLICATION_ID;
+    opts.headers = Object.assign({}, opts.headers || {}, extra);
+    return fetch(url, opts);
+  }
   const WCP_CONFIG = {{ config | tojson }};
   const REFRESH_MS = {{ config.get('refresh_interval', 900) * 1000 }};
 

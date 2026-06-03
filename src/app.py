@@ -28,7 +28,8 @@ def add_cors_headers(response):
     response.headers['Access-Control-Allow-Origin']  = '*'
     response.headers['Access-Control-Allow-Methods'] = 'GET, POST, DELETE, OPTIONS'
     response.headers['Access-Control-Allow-Headers'] = (
-        'Content-Type, Wcp-Instance-Id, Wcp-Dashboard-Id, Wcp-Version, Wcp-Widget-Id'
+        'Content-Type, Wcp-Instance-Id, Wcp-Dashboard-Id, Wcp-Version, Wcp-Widget-Id, '
+        'Wcp-Orchestration-Id, Wcp-Application-Id'
     )
     return response
 
@@ -45,6 +46,26 @@ def get_instance_id():
     if not iid:
         iid = (request.args.get("wcpInstanceId", "") or "").strip()
     return iid
+
+def get_orchestration_id():
+    oid = request.headers.get("Wcp-Orchestration-Id", "").strip()
+    if not oid:
+        oid = (request.args.get("wcpOrchestrationId", "") or "").strip()
+    return oid
+
+def get_application_id():
+    aid = request.headers.get("Wcp-Application-Id", "").strip()
+    if not aid:
+        aid = (request.args.get("wcpApplicationId", "") or "").strip()
+    return aid
+
+def get_state_key():
+    """WCP 1.5.0 compound state key. See widgetcontextprotocol.com — WCP Request Headers."""
+    orch_id = get_orchestration_id()
+    app_id  = get_application_id()
+    if orch_id and app_id: return f"{orch_id}:{app_id}"
+    if orch_id:            return orch_id
+    return "global"
 
 # ── WMO weather code → (emoji, description) ──────────────────────────────────
 
@@ -107,10 +128,10 @@ def write_config(data, instance_id=None):
 # ── WCP Manifest ─────────────────────────────────────────────────────────────
 
 WCP_MANIFEST = {
-    "wcp": "1.4.0",
+    "wcp": "1.5.0",
     "uuid": "65063c5d-5f2e-47c2-935b-fe3a3cdc4d0f",
     "name": "Weather Ticker",
-    "version": "1.2.1",
+    "version": "1.3.0",
     "description": (
         "Live weather, date and time ticker for any location worldwide. "
         "Powered by Open-Meteo — free, no API key required."
@@ -192,7 +213,7 @@ WCP_MANIFEST = {
 def container_directory():
     return jsonify({
         "type":    "directory",
-        "wcp":     "1.4.0",
+        "wcp":     "1.5.0",
         "widgets": [{
             "id":          "weather-ticker",
             "uuid":        WCP_MANIFEST["uuid"],
@@ -209,7 +230,9 @@ def widget_ticker():
     iid = get_instance_id()
     cfg = read_config(iid)
     return render_template("widget.html", manifest=WCP_MANIFEST, config=cfg,
-                           wcp_instance_id=iid)
+                           wcp_instance_id=iid,
+                           wcp_orchestration_id=get_orchestration_id(),
+                           wcp_application_id=get_application_id())
 
 @app.route("/widget/wcp")
 def widget_wcp():
@@ -233,7 +256,9 @@ def widget_full():
     iid = get_instance_id()
     cfg = read_config(iid)
     return render_template("full.html", manifest=WCP_MANIFEST, config=cfg,
-                           wcp_instance_id=iid)
+                           wcp_instance_id=iid,
+                           wcp_orchestration_id=get_orchestration_id(),
+                           wcp_application_id=get_application_id())
 
 ICON_SVG = """<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16">
   <path fill="#f0883e" d="M8 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM8 0a.5.5 0 0 1 .5.5v2a.5.5 0 0 1-1 0v-2A.5.5 0 0 1 8 0zm0 13a.5.5 0 0 1 .5.5v2a.5.5 0 0 1-1 0v-2A.5.5 0 0 1 8 13zm8-5a.5.5 0 0 1-.5.5h-2a.5.5 0 0 1 0-1h2a.5.5 0 0 1 .5.5zM3 8a.5.5 0 0 1-.5.5h-2a.5.5 0 0 1 0-1h2A.5.5 0 0 1 3 8zm10.657-5.657a.5.5 0 0 1 0 .707l-1.414 1.415a.5.5 0 1 1-.707-.708l1.414-1.414a.5.5 0 0 1 .707 0zm-9.193 9.193a.5.5 0 0 1 0 .707L3.05 13.657a.5.5 0 0 1-.707-.707l1.414-1.414a.5.5 0 0 1 .707 0zm9.193 2.121a.5.5 0 0 1-.707 0l-1.414-1.414a.5.5 0 0 1 .707-.707l1.414 1.414a.5.5 0 0 1 0 .707zM4.464 4.465a.5.5 0 0 1-.707 0L2.343 3.05a.5.5 0 1 1 .707-.707l1.414 1.414a.5.5 0 0 1 0 .708z"/>
