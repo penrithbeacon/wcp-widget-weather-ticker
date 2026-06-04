@@ -15,7 +15,7 @@ docker run -d \
   -p 3739:3739 \
   -v weather_config:/app/data \
   --restart unless-stopped \
-  penrithbeacon/wcp-widget-weather-ticker:latest
+  docker.io/penrithbeacon/wcp-widget-weather-ticker:latest
 ```
 
 Then add it to your WCP dashboard at the container's network address and configure your location.
@@ -25,7 +25,7 @@ Then add it to your WCP dashboard at the container's network address and configu
 ```yaml
 services:
   weather-ticker:
-    image: penrithbeacon/wcp-widget-weather-ticker:latest
+    image: docker.io/penrithbeacon/wcp-widget-weather-ticker:latest
     container_name: wcp-widget-weather-ticker
     ports:
       - "3739:3739"
