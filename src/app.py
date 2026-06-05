@@ -15,6 +15,7 @@ from flask import Flask, jsonify, render_template, request, Response
 
 app = Flask(__name__)
 
+PUBLISHED_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'published', 'index.html')
 CONFIG_FILE = os.path.join(os.path.dirname(__file__), 'data', 'config.json')
 os.makedirs(os.path.dirname(CONFIG_FILE), exist_ok=True)
 
@@ -128,10 +129,10 @@ def write_config(data, instance_id=None):
 # ── WCP Manifest ─────────────────────────────────────────────────────────────
 
 WCP_MANIFEST = {
-    "wcp": "2.0.0",
+    "wcp": "2.1.0",
     "uuid": "65063c5d-5f2e-47c2-935b-fe3a3cdc4d0f",
     "name": "Weather Ticker",
-    "version": "1.3.0",
+    "version": "1.4.0",
     "description": (
         "Live weather, date and time ticker for any location worldwide. "
         "Powered by Open-Meteo — free, no API key required."
@@ -141,7 +142,7 @@ WCP_MANIFEST = {
     "container": {
         "image":            "docker.io/penrithbeacon/wcp-widget-weather-ticker",
         "source":           {"type": "registry"},
-        "tag":              "1.3.0-wcp2.0.0",
+        "tag":              "1.4.0-wcp2.1.0",
         "port":             3739,
         "volumes":          [{"name": "weather_config", "mountPath": "/app/data"}],
         "defaultLifecycle": "always",
@@ -215,13 +216,37 @@ WCP_MANIFEST = {
     ],
 }
 
+# ── JSON-LD structured data ───────────────────────────────────────────────────
+
+WIDGET_JSONLD = json.dumps({
+    "@context": "https://schema.org",
+    "@type": "SoftwareApplication",
+    "name": WCP_MANIFEST["name"],
+    "softwareVersion": WCP_MANIFEST["version"],
+    "description": WCP_MANIFEST["description"],
+    "identifier": WCP_MANIFEST["uuid"],
+    "applicationCategory": "WCP Widget",
+    "operatingSystem": "Web",
+    "isBasedOn": {
+        "@type": "WebSite",
+        "name": "Widget Context Protocol",
+        "url": "https://widgetcontextprotocol.com",
+    },
+    "additionalProperty": [
+        {"@type": "PropertyValue", "name": "wcpVersion",      "value": WCP_MANIFEST["wcp"]},
+        {"@type": "PropertyValue", "name": "containerImage",  "value": WCP_MANIFEST["container"]["image"]},
+        {"@type": "PropertyValue", "name": "containerTag",    "value": WCP_MANIFEST["container"]["tag"]},
+        {"@type": "PropertyValue", "name": "containerPort",   "value": str(WCP_MANIFEST["container"]["port"])},
+    ],
+}, indent=2)
+
 # ── WCP Endpoints ─────────────────────────────────────────────────────────────
 
 @app.route("/wcp")
 def container_directory():
     return jsonify({
         "type":    "directory",
-        "wcp":     "2.0.0",
+        "wcp":     "2.1.0",
         "widgets": [{
             "id":          "weather-ticker",
             "uuid":        WCP_MANIFEST["uuid"],
@@ -232,19 +257,50 @@ def container_directory():
         }]
     })
 
+@app.route('/')
+def published_spa():
+    if os.path.exists(PUBLISHED_PATH):
+        with open(PUBLISHED_PATH, 'r', encoding='utf-8') as f:
+            return Response(f.read(), mimetype='text/html')
+    return Response('Not Found', status=404, mimetype='text/plain')
+
+@app.route('/widget/publish', methods=['POST'])
+def publish():
+    html = request.get_data(as_text=True)
+    if not html:
+        return jsonify({'success': False, 'error': 'Empty body'}), 400
+    try:
+        os.makedirs(os.path.dirname(PUBLISHED_PATH), exist_ok=True)
+        with open(PUBLISHED_PATH, 'w', encoding='utf-8') as f:
+            f.write(html)
+        return jsonify({'success': True})
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@app.route('/widget/publish', methods=['DELETE'])
+def unpublish():
+    try:
+        if os.path.exists(PUBLISHED_PATH):
+            os.remove(PUBLISHED_PATH)
+        return jsonify({'success': True})
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
 @app.route("/widget/")
 @app.route("/widget/index.html")
 def widget_ticker():
     iid = get_instance_id()
     cfg = read_config(iid)
-    return render_template("widget.html", manifest=WCP_MANIFEST, config=cfg,
+    return render_template("widget.html", manifest=WCP_MANIFEST, config=cfg, jsonld=WIDGET_JSONLD,
                            wcp_instance_id=iid,
                            wcp_orchestration_id=get_orchestration_id(),
                            wcp_application_id=get_application_id())
 
 @app.route("/widget/wcp")
 def widget_wcp():
-    return jsonify(WCP_MANIFEST)
+    manifest = dict(WCP_MANIFEST)
+    manifest['web'] = {'published': os.path.exists(PUBLISHED_PATH)}
+    return jsonify(manifest)
 
 @app.route("/widget/manifest")
 def widget_manifest():
@@ -263,7 +319,7 @@ def widget_health():
 def widget_full():
     iid = get_instance_id()
     cfg = read_config(iid)
-    return render_template("full.html", manifest=WCP_MANIFEST, config=cfg,
+    return render_template("full.html", manifest=WCP_MANIFEST, config=cfg, jsonld=WIDGET_JSONLD,
                            wcp_instance_id=iid,
                            wcp_orchestration_id=get_orchestration_id(),
                            wcp_application_id=get_application_id())

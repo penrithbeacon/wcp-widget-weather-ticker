@@ -3,6 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <title>Weather Ticker</title>
+<script type="application/ld+json">{{ jsonld|safe }}</script>
 <style>
   * { margin:0; padding:0; box-sizing:border-box; }
   body { background:transparent; overflow:hidden;
@@ -61,6 +62,12 @@
   updateTicker();
   setInterval(updateTicker, REFRESH_MS);
   {% endif %}
+  window.parent?.postMessage({ type: 'wcp:ready' }, '*');
+  window.addEventListener('message', e => {
+    if (e.data?.type === 'wcp:context' && e.data.theme)
+      for (const [k, v] of Object.entries(e.data.theme))
+        document.documentElement.style.setProperty(k, v);
+  });
 </script>
 </body>
 </html>
