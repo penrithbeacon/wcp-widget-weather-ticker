@@ -132,7 +132,7 @@ WCP_MANIFEST = {
     "wcp": "2.1.0",
     "uuid": "65063c5d-5f2e-47c2-935b-fe3a3cdc4d0f",
     "name": "Weather Ticker",
-    "version": "1.4.0",
+    "version": "1.5.0",
     "description": (
         "Live weather, date and time ticker for any location worldwide. "
         "Powered by Open-Meteo — free, no API key required."
@@ -142,7 +142,7 @@ WCP_MANIFEST = {
     "container": {
         "image":            "docker.io/penrithbeacon/wcp-widget-weather-ticker",
         "source":           {"type": "registry"},
-        "tag":              "1.4.0-wcp2.1.0",
+        "tag":              "1.5.0-wcp2.1.0",
         "port":             3739,
         "volumes":          [{"name": "weather_config", "mountPath": "/app/data"}],
         "defaultLifecycle": "always",
