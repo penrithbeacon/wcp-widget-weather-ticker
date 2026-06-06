@@ -5,6 +5,8 @@ services:
     container_name: wcp-widget-weather-ticker
     ports:
       - "3739:3739"
+    environment:
+      - CONTAINER_NAME=wcp-widget-weather-ticker
     restart: unless-stopped
     volumes:
       - weather_config:/app/data
