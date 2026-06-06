@@ -91,6 +91,7 @@ This widget supports the WCP 2.0.0 request headers:
 ## Technical Details
 
 - **Base image:** `python:3.12-slim`
+- **Platforms:** `linux/amd64`, `linux/arm64`
 - **Port:** `3739`
 - **Dependencies:** Flask, requests
 - **Weather data:** [Open-Meteo API](https://open-meteo.com/) — free, no API key needed
@@ -101,11 +102,13 @@ This widget supports the WCP 2.0.0 request headers:
 
 | Tag | Description |
 |-----|-------------|
-| `latest` | Latest stable release |
+| `latest` | Latest stable release — multi-arch (`linux/amd64`, `linux/arm64`) |
 | `1.3.0-wcp2.0.0` | Widget v1.3.0, WCP 2.0.0 — container block, manifest image source |
 | `1.2.1-wcp1.4.0` | Widget v1.2.1, WCP 2.0.0 — server UUID, Container Directory, Wcp-Widget-Id |
 | `1.2.0-wcp1.3.1` | Widget v1.2.0, WCP 1.3.1 — multi-instance headers, autocomplete config type |
 | `1.1.0-wcp1.3.0` | Widget v1.1.0, WCP 1.3.0 — components array, ticker role |
+
+> **Platform history:** `latest` was rebuilt as a multi-arch image on 2026-06-05, adding `linux/amd64` support (Synology NAS, Intel/AMD servers). All version-specific tags (`1.1.0-wcp1.3.0` through `1.3.0-wcp2.0.0`) were originally built on Apple Silicon and are `linux/arm64` only.
 
 ## Source
 
