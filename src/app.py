@@ -206,7 +206,7 @@ WCP_MANIFEST = {
         {
             "id": "weather-widget", "uuid": "3c138659-6100-4321-b1d7-7e556213031a", "name": "Weather Ticker", "role": "widget",
             "path": "/widget/", "icon": "/widget/icon.svg",
-            "renderMode": "iframe", "defaultSize": {"w": 6, "h": 2},
+            "renderMode": "iframe", "defaultSize": {"w": 6, "h": 4},
         },
         {
             "id": "weather-ticker", "uuid": "c8fdf59c-70b6-416a-a3b6-1dc0788e7989", "name": "Weather Masthead Ticker", "role": "ticker",
