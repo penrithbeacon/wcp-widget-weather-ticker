@@ -132,7 +132,7 @@ WCP_MANIFEST = {
     "wcp": "2.1.0",
     "uuid": "65063c5d-5f2e-47c2-935b-fe3a3cdc4d0f",
     "name": "Weather Ticker",
-    "version": "1.5.0",
+    "version": "1.6.0",
     "description": (
         "Live weather, date and time ticker for any location worldwide. "
         "Powered by Open-Meteo — free, no API key required."
@@ -142,7 +142,7 @@ WCP_MANIFEST = {
     "container": {
         "image":            "docker.io/penrithbeacon/wcp-widget-weather-ticker",
         "source":           {"type": "registry"},
-        "tag":              "1.5.0-wcp2.1.0",
+        "tag":              "1.6.0-wcp2.1.0",
         "port":             3739,
         "volumes":          [{"name": "weather_config", "mountPath": "/app/data"}],
         "defaultLifecycle": "always",
@@ -301,6 +301,12 @@ def widget_wcp():
     manifest = dict(WCP_MANIFEST)
     manifest['web'] = {'published': os.path.exists(PUBLISHED_PATH)}
     return jsonify(manifest)
+
+@app.route("/widget/index")
+def widget_index():
+    return render_template("index-page.html", manifest=WCP_MANIFEST, jsonld=WIDGET_JSONLD,
+        wcp_instance_id=get_instance_id(),
+        wcp_orchestration_id=get_orchestration_id(), wcp_application_id=get_application_id())
 
 @app.route("/widget/manifest")
 def widget_manifest():
